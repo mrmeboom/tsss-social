@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sherry Content Board</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0f0d0b;
+      --bg2:       #1a1713;
+      --bg3:       #242018;
+      --border:    #2e2820;
+      --amber:     #c8841a;
+      --amber-l:   #e8a030;
+      --amber-dim: rgba(200,132,26,0.13);
+      --text:      #e8ddd0;
+      --text-dim:  #8a7d6e;
+      --text-muted:#4a4035;
+      --green-bg:  rgba(80,140,60,0.12);
+      --green:     #6aaa52;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+
+    /* ── Header ── */
+    header {
+      padding: 1rem 1rem 0.85rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 50;
+    }
+
+    .header-left { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+
+    header h1 {
+      font-family: 'Instrument Serif', serif;
+      font-style: italic;
+      font-size: 1.45rem;
+      color: var(--amber-l);
+      letter-spacing: -0.01em;
+    }
+
+    .video-count {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .add-btn {
+      background: var(--amber-dim);
+      border: 1px solid var(--amber);
+      color: var(--amber-l);
+      padding: 0.35rem 0.85rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.72rem;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 0.04em;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .add-btn:hover { background: rgba(200,132,26,0.28); }
+
+    /* ── Grid ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      padding: 1rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      background: transparent;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--bg2);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+      transition: transform 0.2s;
+      display: flex;
+      flex-direction: column;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+    }
+
+    .card-embed {
+      width: 100%;
+      aspect-ratio: 9 / 16;
+      background: var(--bg2);
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .card-embed video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .video-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.3) 100%);
+      opacity: 1;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+
+    .card-embed:hover .video-overlay {
+      opacity: 0;
+    }
+
+    .play-indicator {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px;
+      height: 40px;
+      background: rgba(255,255,255,0.9);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: var(--bg);
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+
+    .card-embed:hover .play-indicator {
+      opacity: 1;
+    }
+
+    /* ── Card body ── */
+    .card-body {
+      padding: 0.55rem 0.6rem 0.5rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .meta-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.3rem;
+    }
+
+    .num-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.55rem;
+      color: var(--amber);
+      background: var(--amber-dim);
+      padding: 0.15rem 0.3rem;
+      border-radius: 2px;
+      flex-shrink: 0;
+      margin-top: 2px;
+      letter-spacing: 0.03em;
+    }
+
+    .card-title {
+      font-family: 'Instrument Serif', serif;
+      font-size: 0.82rem;
+      line-height: 1.3;
+      color: var(--text);
+      flex: 1;
+      min-width: 0;
+    }
+
+    .views-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.52rem;
+      color: var(--green);
+      background: var(--green-bg);
+      padding: 0.15rem 0.3rem;
+      border-radius: 2px;
+      flex-shrink: 0;
+      margin-top: 2px;
+      letter-spacing: 0.02em;
+    }
+
+    .edit-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.72rem;
+      padding: 0.1rem 0.15rem;
+      flex-shrink: 0;
+      line-height: 1;
+      transition: color 0.15s;
+    }
+    .edit-btn:hover { color: var(--amber); }
+
+    /* ── Shots display ── */
+    .shots-area { display: flex; flex-direction: column; gap: 0.22rem; }
+
+    .shots-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.57rem;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .shots-label em {
+      color: var(--amber-l);
+      font-style: normal;
+    }
+
+    .add-shot-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.5rem;
+      padding: 0.1rem 0.3rem;
+      border-radius: 2px;
+      transition: all 0.15s;
+      margin-left: auto;
+    }
+    .add-shot-btn:hover {
+      border-color: var(--amber);
+      color: var(--amber);
+    }
+
+    .shots-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .shot-item {
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      line-height: 1.35;
+      display: grid;
+      grid-template-columns: 10px 1fr auto;
+      gap: 0.25rem;
+      align-items: center;
+    }
+
+    .shot-item::before {
+      content: '—';
+      color: var(--text-muted);
+    }
+
+    .shot-item input {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-dim);
+      font-family: inherit;
+      font-size: inherit;
+      padding: 0.1rem;
+      border-radius: 2px;
+      width: 100%;
+    }
+    .shot-item input:focus {
+      outline: none;
+      border-color: var(--amber);
+      background: var(--bg3);
+    }
+
+    .shot-item button {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.6rem;
+      padding: 0.1rem;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .shot-item:hover button {
+      opacity: 1;
+    }
+    .shot-item button:hover {
+      color: #c05040;
+    }
+
+    .no-shots {
+      font-size: 0.63rem;
+      color: var(--text-muted);
+      font-style: italic;
+      font-family: 'Instrument Serif', serif;
+    }
+
+    /* ── Edit panel ── */
+    .edit-panel {
+      display: none;
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      padding: 0.65rem 0.7rem 0.7rem;
+    }
+    .edit-panel.open { display: block; }
+
+    .field-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.57rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      display: block;
+      margin-bottom: 0.28rem;
+    }
+
+    .field-group { margin-bottom: 0.55rem; }
+
+    .edit-panel input[type="number"] {
+      width: 58px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.78rem;
+      padding: 0.28rem 0.4rem;
+      border-radius: 3px;
+    }
+
+    .edit-panel textarea {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.68rem;
+      font-family: 'DM Sans', sans-serif;
+      line-height: 1.5;
+      padding: 0.38rem 0.45rem;
+      border-radius: 3px;
+      resize: vertical;
+      min-height: 68px;
+    }
+
+    .edit-panel input:focus,
+    .edit-panel textarea:focus {
+      outline: 1px solid var(--amber);
+      border-color: var(--amber);
+    }
+
+    .btn-row {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: 0.5rem;
+    }
+
+    .btn-save {
+      background: var(--amber);
+      border: none;
+      color: #0f0d0b;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 500;
+      padding: 0.32rem 0.7rem;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-save:hover { background: var(--amber-l); }
+
+    .btn-cancel {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.32rem 0.7rem;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .btn-cancel:hover { border-color: var(--text-dim); }
+
+    .btn-delete {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.78rem;
+      padding: 0.1rem 0.2rem;
+      margin-left: auto;
+      transition: color 0.15s;
+    }
+    .btn-delete:hover { color: #c05040; }
+
+    /* ── Add modal ── */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .overlay.open { display: flex; }
+
+    .modal {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1.2rem;
+      width: 100%;
+      max-width: 380px;
+    }
+
+    .modal h2 {
+      font-family: 'Instrument Serif', serif;
+      font-style: italic;
+      font-size: 1.1rem;
+      color: var(--amber-l);
+      margin-bottom: 0.9rem;
+    }
+
+    .modal .field-group { margin-bottom: 0.6rem; }
+
+    .modal input, .modal textarea {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.78rem;
+      font-family: 'DM Sans', sans-serif;
+      padding: 0.38rem 0.5rem;
+      border-radius: 3px;
+    }
+    .modal input:focus, .modal textarea:focus {
+      outline: 1px solid var(--amber);
+      border-color: var(--amber);
+    }
+
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        padding: 0.5rem;
+      }
+      body {
+        padding: 0.5rem;
+      }
+    }
+    
+    @media (max-width: 400px) {
+      .card-title { font-size: 0.75rem; }
+      .card-body { padding: 0.45rem 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>Sherry Content Board</h1>
+    <span class="video-count" id="video-count">– videos</span>
+  </div>
+  <button class="add-btn" onclick="openModal()">+ Add video</button>
+</header>
+
+<div class="grid" id="grid"></div>
+
+<!-- Add video modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2>Add video</h2>
+    <div class="field-group">
+      <label class="field-label">Title</label>
+      <input type="text" id="m-title" placeholder="e.g. Sherrybending III">
+    </div>
+    <div class="field-group">
+      <label class="field-label">Views (optional)</label>
+      <input type="text" id="m-views" placeholder="e.g. 200k">
+    </div>
+    <div class="field-group">
+      <label class="field-label">Instagram URL</label>
+      <input type="text" id="m-url" placeholder="https://www.instagram.com/p/...">
+    </div>
+    <div class="field-group">
+      <label class="field-label">First shot / description</label>
+      <textarea id="m-desc" rows="2" placeholder="Short description of the concept"></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn-save" onclick="addVideo()">Add</button>
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Seed data from social.md ──
+const SEED = [
+  { id:1,  num:5,  title:"Sherrybending II",                              views:"500k", url:"https://www.instagram.com/p/DXmECh7ka-1/",    desc:"Op allerlei plekken en manieren 'toveren' we Sherry tevoorschijn" },
+  { id:2,  num:6,  title:"Waiting until aperitivo",                       views:"50k",  url:"https://www.instagram.com/p/DT97FIOEvmO/",    desc:"Fles Amontillado + 2 glazen op tafel. Marten en Karel kunnen niet wachten" },
+  { id:3,  num:7,  title:"You look like you need a hug",                  views:"15k",  url:"https://www.instagram.com/p/DVGiUuwkwGV/",    desc:"A sip of Sherry" },
+  { id:4,  num:8,  title:"Why you so obsessed with me",                   views:"80k",  url:"https://www.instagram.com/p/DWgsJNRCsQP/",    desc:"Marten en Karel (en Nicky 😘) doen een losse" },
+  { id:5,  num:9,  title:"Nobody gonna break my stride",                  views:"150k", url:"https://www.instagram.com/p/DVwj-BDkWQT/",    desc:"Doen met random shots van Feria + Jerez" },
+  { id:6,  num:10, title:"Keep it gangsta",                               views:"100k", url:"https://www.instagram.com/p/DWoYElWCPJG/",    desc:"Ons 3 op de Feria in pak (viggle)" },
+  { id:7,  num:11, title:"Come and do the 2 step",                        views:"50k",  url:"https://www.instagram.com/p/DVROAG8jrzb/",    desc:"Karel en Marten country dance op de Feria (viggle)" },
+  { id:8,  num:12, title:"Do you have any hobbies?",                      views:"60k",  url:"https://www.instagram.com/p/DN8jdz7CHqw/",    desc:"Supercut van glazen en hapjes in Jerez + Feria" },
+  { id:9,  num:13, title:"Montagem Santa Fe",                             views:"85k",  url:"https://www.instagram.com/p/DWdSEDLRgIt/",    desc:"Marten bumpt into Karel @ the Feria, K heeft een fles en 2 glazen vast, dansen" },
+  { id:10, num:14, title:"Oh no, un caballero girando, horizontalmente",  views:"200k", url:"https://www.instagram.com/p/DVtN1cTom26/",    desc:"Marten schreeuwt het uit op de Feria, dan dansen" },
+  { id:11, num:15, title:"Vamos a la Feria!",                             views:"",     url:"https://www.instagram.com/reel/DXwbD27MzI-/", desc:"Claro, con chulería" },
+  { id:12, num:16, title:"Lachen man, die Feria",                         views:"800k", url:"https://www.instagram.com/p/DWI5cuBEYcd/",    desc:"Allemaal shots draaien van lachende Karel & Marten" },
+  { id:13, num:17, title:"Don't nobody else",                             views:"",     url:"https://www.instagram.com/p/DQoh3CviLZf/",    desc:"Karel en Marten falling in dance" },
+  { id:14, num:18, title:"Us realising we now have to be content creators", views:"",  url:"https://www.instagram.com/p/DXchli7EbLn/",    desc:"Karel en Marten doen huilend dansje op de Feria" },
+  { id:15, num:19, title:"Euhmm",                                         views:"",     url:"https://www.instagram.com/reel/DT2__otkTxN/", desc:"Should we do street interviews?" },
+  { id:16, num:20, title:"What do you say to the next person?",           views:"",     url:"https://www.instagram.com/reel/DXQRdk8EYVh/", desc:"" },
+  { id:17, num:21, title:"Getting ready for the Feria",                   views:"",     url:"https://www.instagram.com/reel/DXeArOeDDV6/", desc:"We schieten onze kleren aan" },
+  { id:18, num:22, title:"Schiphol to Feria",                             views:"",     url:"https://www.instagram.com/reel/DXfOXJijDQB/", desc:"Eenzame Marten naar Feria met zn 3en" },
+  { id:19, num:23, title:"Karel appears",                                 views:"",     url:"https://www.instagram.com/reel/DXXPjXogvZK/", desc:"Marten Manifesteert" },
+  { id:20, num:24, title:"Ass to Jerez",                                  views:"",     url:"https://www.instagram.com/reel/DXZQsZdCCQe/", desc:"Ik loop, mijn bips, wij staan te flexen op de Feria" },
+];
+
+// ── State ──
+function loadState() {
+  try {
+    const raw = localStorage.getItem('sherry_board_v1');
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  // First load: seed shots from description
+  const shots = {};
+  SEED.forEach(v => {
+    shots[v.id] = v.desc ? { count: 1, list: [v.desc] } : { count: 0, list: [] };
+  });
+  return { videos: SEED.map(v => ({...v})), shots };
+}
+
+function save() {
+  localStorage.setItem('sherry_board_v1', JSON.stringify(state));
+}
+
+let state = loadState();
+let nextId = Math.max(...state.videos.map(v => v.id), 0) + 1;
+
+// ── Helpers ──
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function getVideoFile(videoId) {
+  // Map video IDs to actual MP4 files in the videos directory
+  const videoMap = {
+    1: '05_sherrybend.mp4', 2: '06_aperitivo.mp4', 3: '07_hug.mp4', 4: '08_obsessed.mp4', 5: '09_stride.mp4',
+    6: '10_gangsta.mp4', 7: '11_twostep.mp4', 8: '12_hobbies.mp4', 9: '13_montagem.mp4', 10: '14_caballo.mp4',
+    11: '15_vamos.mp4', 12: '16_lachen.mp4', 13: '17_nobodyelse.mp4', 14: '18_realising.mp4', 15: '19_street.mp4',
+    16: '20_nextperson.mp4', 17: '21_getting ready.mp4', 18: '22_schiphol.mp4', 19: '23_karel.mp4', 20: '24_assjerez.mp4'
+  };
+  return videoMap[videoId] || null;
+}
+
+// ── Render ──
+function render() {
+  const grid = document.getElementById('grid');
+  document.getElementById('video-count').textContent = `${state.videos.length} videos`;
+  grid.innerHTML = '';
+
+  state.videos.forEach(v => {
+    const s = state.shots[v.id] || { count: 0, list: [] };
+
+    const shotsHtml = s.list.length
+      ? s.list.map((t, i) => `<li class="shot-item"><input type="text" value="${esc(t)}" onchange="updateShot(${v.id}, ${i}, this.value)" placeholder="Shot description"><button onclick="removeShot(${v.id}, ${i})" title="Remove">×</button></li>`).join('')
+      : `<span class="no-shots">No shots yet</span>`;
+
+    const videoFile = getVideoFile(v.id);
+    const videoHtml = videoFile ? `
+      <div class="card-embed" onmouseenter="playVideo(${v.id})" onmouseleave="pauseVideo(${v.id})" onclick="toggleVideoMobile(${v.id})">
+        <video id="video-${v.id}" loop preload="metadata" playsinline muted>
+          <source src="videos/${videoFile}" type="video/mp4">
+        </video>
+        <div class="video-overlay"></div>
+      </div>
+    ` : `
+      <div class="card-embed">
+        <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); font-size: 0.8rem;">
+          No video file
+        </div>
+      </div>
+    `;
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.id = `card-${v.id}`;
+
+    card.innerHTML = `
+      ${videoHtml}
+      <div class="card-body">
+        <div class="meta-row">
+          <span class="num-badge">#${v.num}</span>
+          <span class="card-title">${esc(v.title)}</span>
+          ${v.views ? `<span class="views-badge">${esc(v.views)}</span>` : ''}
+        </div>
+        <div class="shots-area">
+          <span class="shots-label">shots: <em>${s.count}</em><button class="add-shot-btn" onclick="addShot(${v.id})">+ Add</button></span>
+          <ul class="shots-list">${shotsHtml}</ul>
+        </div>
+      </div>
+
+      <div class="edit-panel" id="ep-${v.id}">
+        <div class="field-group">
+          <label class="field-label">Number of shots</label>
+          <input type="number" id="ec-${v.id}" value="${s.count}" min="0">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Shot descriptions — one per line</label>
+          <textarea id="el-${v.id}" placeholder="Shot 1&#10;Shot 2&#10;...">${esc(s.list.join('\n'))}</textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn-save"   onclick="saveShots(${v.id})">Save</button>
+          <button class="btn-cancel" onclick="toggleEdit(${v.id})">Cancel</button>
+          <button class="btn-delete" onclick="deleteVideo(${v.id})" title="Delete">🗑</button>
+        </div>
+      </div>
+    `;
+
+    grid.appendChild(card);
+  });
+}
+
+// ── Actions ──
+function toggleVideoMobile(videoId) {
+  // Only handle click events on mobile/touch devices
+  if ('ontouchstart' in window) {
+    const video = document.getElementById(`video-${videoId}`);
+    
+    if (video) {
+      if (video.paused) {
+        video.play().catch(e => console.log('Play failed:', e));
+      } else {
+        video.pause();
+        video.currentTime = 0;
+      }
+    }
+  }
+}
+
+function playVideo(videoId) {
+  const video = document.getElementById(`video-${videoId}`);
+  
+  if (video) {
+    video.play().catch(e => console.log('Play failed:', e));
+  }
+}
+
+function pauseVideo(videoId) {
+  const video = document.getElementById(`video-${videoId}`);
+  
+  if (video) {
+    video.pause();
+    video.currentTime = 0;
+  }
+}
+
+function addShot(videoId) {
+  if (!state.shots[videoId]) {
+    state.shots[videoId] = { count: 0, list: [] };
+  }
+  state.shots[videoId].list.push('');
+  state.shots[videoId].count = state.shots[videoId].list.length;
+  save();
+  render();
+}
+
+function updateShot(videoId, index, value) {
+  if (!state.shots[videoId]) return;
+  state.shots[videoId].list[index] = value;
+  state.shots[videoId].count = state.shots[videoId].list.filter(s => s.trim()).length;
+  save();
+  render();
+}
+
+function removeShot(videoId, index) {
+  if (!state.shots[videoId]) return;
+  state.shots[videoId].list.splice(index, 1);
+  state.shots[videoId].count = state.shots[videoId].list.filter(s => s.trim()).length;
+  save();
+  render();
+}
+
+function toggleEdit(id) {
+  // Legacy function - no longer needed with inline editing
+}
+
+function saveShots(id) {
+  // Legacy function - no longer needed with inline editing
+}
+
+function deleteVideo(id) {
+  if (!confirm('Delete this video?')) return;
+  state.videos = state.videos.filter(v => v.id !== id);
+  delete state.shots[id];
+  save();
+  render();
+}
+
+// ── Modal ──
+function openModal()  { document.getElementById('overlay').classList.add('open'); }
+function closeModal() {
+  document.getElementById('overlay').classList.remove('open');
+  ['m-title','m-views','m-url','m-desc'].forEach(id => document.getElementById(id).value = '');
+}
+
+function addVideo() {
+  const title = document.getElementById('m-title').value.trim();
+  const views = document.getElementById('m-views').value.trim();
+  const url   = document.getElementById('m-url').value.trim();
+  const desc  = document.getElementById('m-desc').value.trim();
+  if (!title || !url) { alert('Title and URL are required.'); return; }
+  const maxNum = state.videos.length ? Math.max(...state.videos.map(v => v.num)) : 0;
+  const v = { id: nextId++, num: maxNum + 1, title, views, url, desc };
+  state.videos.push(v);
+  state.shots[v.id] = { count: desc ? 1 : 0, list: desc ? [desc] : [] };
+  save();
+  closeModal();
+  render();
+}
+
+// close modal on overlay click
+document.getElementById('overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+render();
+</script>
+</body>
+</html>
