@@ -67,19 +67,39 @@
     }
 
     .add-btn {
-      background: var(--amber-dim);
-      border: 1px solid var(--amber);
-      color: var(--amber-l);
-      padding: 0.35rem 0.85rem;
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
       border-radius: 4px;
       cursor: pointer;
-      font-size: 0.72rem;
-      font-family: 'DM Mono', monospace;
-      letter-spacing: 0.04em;
-      transition: background 0.15s;
-      white-space: nowrap;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: background 0.2s;
     }
-    .add-btn:hover { background: rgba(200,132,26,0.28); }
+
+    .header-right {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .auth-btn {
+      background: var(--bg2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+
+    .auth-btn:hover {
+      background: var(--accent);
+      color: white;
+    }
 
     /* ── Grid ── */
     .grid {
@@ -574,7 +594,10 @@
     <h1>Sherry Content Board</h1>
     <span class="video-count" id="video-count">– videos</span>
   </div>
-  <button class="add-btn" onclick="openModal()">+ Add video</button>
+  <div class="header-right">
+    <button id="auth-btn" class="auth-btn" onclick="toggleAuth()">Login</button>
+    <button class="add-btn" onclick="openModal()">+ Add video</button>
+  </div>
 </header>
 
 <!-- Category Sections -->
@@ -607,7 +630,17 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+// ── Supabase Configuration ──
+const SUPABASE_URL = 'https://gyavdaefgzmsuvtufzfr.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_WWp0s4FQQLHoi0ba-xbDTw_HdEyRXLj';
+
+// Initialize Supabase client
+function initSupabase() {
+  supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+
 // ── Seed data from social.md ──
 const SEED = [
   { id:1,  num:5,  title:"Sherrybending II",                              views:"500k", url:"https://www.instagram.com/p/DXmECh7ka-1/",    desc:"Op allerlei plekken en manieren 'toveren' we Sherry tevoorschijn", category:null },
@@ -635,24 +668,53 @@ const SEED = [
 const CATEGORIES = ['Thuis', 'Feria', 'Tussendoor', 'Veel werk', 'Tsja', 'Klaar'];
 
 // ── State ──
-function loadState() {
+async function loadState() {
   try {
-    const raw = localStorage.getItem('sherry_board_v1');
-    if (raw) return JSON.parse(raw);
-  } catch(e) {}
-  // First load: seed shots from description
-  const shots = {};
-  SEED.forEach(v => {
-    shots[v.id] = v.desc ? { count: 1, list: [v.desc] } : { count: 0, list: [] };
-  });
-  return { videos: SEED.map(v => ({...v})), shots };
+    const { data: videos, error } = await supabase
+      .from('videos')
+      .select('*')
+      .order('num', { ascending: true });
+    
+    if (error) throw error;
+    
+    // Load shots for each video
+    const shots = {};
+    for (const video of videos) {
+      const { data: shotData, error: shotError } = await supabase
+        .from('shots')
+        .select('*')
+        .eq('video_id', video.id)
+        .single();
+      
+      if (!shotError && shotData) {
+        shots[video.id] = shotData;
+      }
+    }
+    
+    return { videos, shots };
+  } catch(e) {
+    // Fallback to SEED for development
+    return { videos: SEED, shots: {} };
+  }
 }
 
-function save() {
-  localStorage.setItem('sherry_board_v1', JSON.stringify(state));
+async function save() {
+  // Save is handled by individual Supabase operations
+  console.log('State saved to Supabase');
 }
 
-let state = loadState();
+// Load state and render helper
+async function loadStateAndRender() {
+  state = await loadState();
+  render();
+}
+
+let state;
+
+// Initialize state
+async function initState() {
+  state = await loadState();
+}
 let nextId = Math.max(...state.videos.map(v => v.id), 0) + 1;
 
 // ── Helpers ──
@@ -855,22 +917,33 @@ function editVideo(videoId) {
   }
 }
 
-function saveVideoChanges() {
+async function saveVideoChanges() {
   const videoId = window.currentEditId;
-  const video = state.videos.find(v => v.id === videoId);
-  if (video) {
+  
+  try {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Please login to edit videos');
+    
     // Update video data
-    video.title = document.getElementById('m-title').value;
-    video.views = document.getElementById('m-views').value;
-    video.desc = document.getElementById('m-desc').value;
+    const { error } = await supabase
+      .from('videos')
+      .update({
+        title: document.getElementById('m-title').value,
+        views: document.getElementById('m-views').value,
+        description: document.getElementById('m-desc').value
+      })
+      .eq('id', videoId)
+      .eq('user_id', user.id); // Ensure user owns the video
     
-    // Note: We don't update the URL field since videos use Cloudinary URLs via getVideoFile()
-    // The URL field is for display purposes only
+    if (error) throw error;
     
-    save();
-    render();
+    // Reload state and re-render
+    await loadStateAndRender();
     resetModal();
     closeModal();
+  } catch (error) {
+    alert('Error updating video: ' + error.message);
   }
 }
 
@@ -897,16 +970,34 @@ function resetModal() {
 }
 
 
-function deleteVideo(videoId) {
+async function deleteVideo(videoId) {
   if (confirm('Are you sure you want to delete this video?')) {
-    // Remove video from state
-    state.videos = state.videos.filter(v => v.id !== videoId);
-    
-    // Remove associated shots
-    delete state.shots[videoId];
-    
-    save();
-    render();
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Please login to delete videos');
+      
+      // Delete video from Supabase (RLS will ensure user owns it)
+      const { error: videoError } = await supabase
+        .from('videos')
+        .delete()
+        .eq('id', videoId)
+        .eq('user_id', user.id);
+      
+      if (videoError) throw videoError;
+      
+      // Delete associated shots
+      await supabase
+        .from('shots')
+        .delete()
+        .eq('video_id', videoId)
+        .eq('user_id', user.id);
+      
+      // Reload state and re-render
+      await loadStateAndRender();
+    } catch (error) {
+      alert('Error deleting video: ' + error.message);
+    }
   }
 }
 
@@ -979,25 +1070,91 @@ function closeModal() {
   resetModal();
 }
 
-function addVideo() {
+async function addVideo() {
   const title = document.getElementById('m-title').value.trim();
   const views = document.getElementById('m-views').value.trim();
   const url   = document.getElementById('m-url').value.trim();
   const desc  = document.getElementById('m-desc').value.trim();
   if (!title || !url) { alert('Title and URL are required.'); return; }
-  const maxNum = state.videos.length ? Math.max(...state.videos.map(v => v.num)) : 0;
-  const v = { id: nextId++, num: maxNum + 1, title, views, url, desc, category: null };
-  state.videos.push(v);
-  // Add initial shot if description provided
-  if (desc) {
-    state.shots[v.id] = { count: 1, list: [desc] };
-  } else {
-    state.shots[v.id] = { count: 0, list: [] };
+  
+  try {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Please login to add videos');
+    
+    const maxNum = state.videos.length ? Math.max(...state.videos.map(v => v.num)) : 0;
+    const videoData = { 
+      num: maxNum + 1, 
+      title, 
+      views, 
+      url, 
+      description: desc, 
+      category: null,
+      user_id: user.id 
+    };
+    
+    // Insert video
+    const { data: video, error } = await supabase
+      .from('videos')
+      .insert(videoData)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    // Add initial shot if description provided
+    if (desc) {
+      await supabase
+        .from('shots')
+        .insert({
+          video_id: video.id,
+          count: 1,
+          list: [desc],
+          user_id: user.id
+        });
+    }
+    
+    // Reload state and re-render
+    await loadStateAndRender();
+    resetModal();
+    closeModal();
+  } catch (error) {
+    alert('Error adding video: ' + error.message);
   }
-  save();
-  render();
-  resetModal();
-  closeModal();
+}
+
+// ── Authentication ──
+async function toggleAuth() {
+  const authBtn = document.getElementById('auth-btn');
+  
+  // Check if supabase is initialized
+  if (!supabase) {
+    alert('Supabase not initialized yet. Please wait...');
+    return;
+  }
+  
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (user) {
+    // Logout
+    await supabase.auth.signOut();
+    authBtn.textContent = 'Login';
+    state = await loadState();
+  } else {
+    // Show login modal
+    const email = prompt('Enter your email:');
+    const password = prompt('Enter your password:');
+    
+    if (email && password) {
+      const { error } = await supabase.auth.signInWithPassword(email, password);
+      if (error) {
+        alert('Login failed: ' + error.message);
+      } else {
+        authBtn.textContent = 'Logout';
+        await loadStateAndRender();
+      }
+    }
+  }
 }
 
 // close modal on overlay click
@@ -1005,7 +1162,15 @@ document.getElementById('overlay').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeModal();
 });
 
-render();
+// Initialize app
+async function init() {
+  initSupabase();
+  await initState();
+  render();
+}
+
+// Start app
+init();
 </script>
 </body>
 </html>
