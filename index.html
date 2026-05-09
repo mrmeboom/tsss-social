@@ -96,23 +96,25 @@
     /* Mobile responsive grid */
     @media (max-width: 768px) {
       .grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, 1fr) !important;
         gap: 0.75rem;
         padding: 0.75rem;
       }
       .card {
-        max-width: none;
+        max-width: none !important;
+        width: 100% !important;
       }
     }
 
     @media (max-width: 480px) {
       .grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, 1fr) !important;
         gap: 0.5rem;
         padding: 0.5rem;
       }
       .card {
-        max-width: none;
+        max-width: none !important;
+        width: 100% !important;
       }
     }
 
