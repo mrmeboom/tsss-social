@@ -638,7 +638,11 @@ const SUPABASE_ANON_KEY = 'sb_publishable_WWp0s4FQQLHoi0ba-xbDTw_HdEyRXLj';
 
 // Initialize Supabase client
 function initSupabase() {
-  supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  if (typeof createClient !== 'undefined') {
+    supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } else {
+    console.error('Supabase client not loaded');
+  }
 }
 
 // ── Seed data from social.md ──
@@ -679,20 +683,23 @@ async function loadState() {
     
     // Load shots for each video
     const shots = {};
-    for (const video of videos) {
-      const { data: shotData, error: shotError } = await supabase
-        .from('shots')
-        .select('*')
-        .eq('video_id', video.id)
-        .single();
-      
-      if (!shotError && shotData) {
-        shots[video.id] = shotData;
+    if (videos && videos.length > 0) {
+      for (const video of videos) {
+        const { data: shotData, error: shotError } = await supabase
+          .from('shots')
+            .select('*')
+            .eq('video_id', video.id)
+            .single();
+        
+        if (!shotError && shotData) {
+          shots[video.id] = shotData;
+        }
       }
     }
     
-    return { videos, shots };
+    return { videos: videos || [], shots };
   } catch(e) {
+    console.error('Error loading state:', e);
     // Fallback to SEED for development
     return { videos: SEED, shots: {} };
   }
@@ -715,7 +722,14 @@ let state;
 async function initState() {
   state = await loadState();
 }
-let nextId = Math.max(...state.videos.map(v => v.id), 0) + 1;
+
+// Calculate next ID safely
+function getNextId() {
+  if (state.videos && state.videos.length > 0) {
+    return Math.max(...state.videos.map(v => v.id), 0) + 1;
+  }
+  return 1;
+}
 
 // ── Helpers ──
 function esc(s) {
@@ -1084,7 +1098,7 @@ async function addVideo() {
     
     const maxNum = state.videos.length ? Math.max(...state.videos.map(v => v.num)) : 0;
     const videoData = { 
-      num: maxNum + 1, 
+      num: getNextId(), 
       title, 
       views, 
       url, 
@@ -1164,13 +1178,13 @@ document.getElementById('overlay').addEventListener('click', e => {
 
 // Initialize app
 async function init() {
-  initSupabase();
+  await initSupabase();
   await initState();
   render();
 }
 
-// Start app
-init();
+// Start app when DOM is ready
+document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
