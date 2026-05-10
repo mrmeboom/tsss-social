@@ -779,7 +779,7 @@
         }
 
         try {
-          await this.saveVideo(video);
+          await this.saveVideoToDatabase(video);
           this.closeModal();
         } catch (error) {
           alert('Error saving video: ' + error.message);
