@@ -205,7 +205,7 @@
     /* thumb */
     .thumb {
       position: relative;
-      aspect-ratio: 9/16;
+      aspect-ratio: 16/9;
       background: var(--surface-2);
       overflow: hidden;
       flex-shrink: 0;
@@ -548,7 +548,6 @@ const sb = createClient(
 
 // ─── State ────────────────────────────────────────────
 let videos = [];
-let shots  = {}; // keyed by video_id
 let activeCat = 'all';
 
 // ─── Utils ────────────────────────────────────────────
@@ -619,7 +618,6 @@ function render() {
     return ms && mc;
   });
 
-  // stats
   const totalShots = videos.reduce((a, v) => a + (v.shots?.length || 0), 0);
   const catSet = new Set(videos.map(v => v.category).filter(Boolean));
   document.getElementById('stats').innerHTML =
@@ -637,7 +635,6 @@ function render() {
 
 // ─── Card ─────────────────────────────────────────────
 function cardHTML(v) {
-  const t  = thumb(v.url);
   const list = v.shots || [];
   const shotCount = list.length;
 
@@ -645,7 +642,9 @@ function cardHTML(v) {
   <div class="card" id="card-${v.id}">
     <div class="thumb">
       ${v.num != null ? `<div class="num-badge">#${v.num}</div>` : ''}
-      ${t ? `<video src="${esc(v.url)}" controls preload="metadata" playsinline></video>` : `<div class="thumb-empty">▣</div>`}
+      ${v.url
+        ? `<video src="${esc(v.url)}" controls preload="metadata" playsinline></video>`
+        : `<div class="thumb-empty">▣</div>`}
     </div>
     <div class="info">
       <div class="info-top">
