@@ -713,18 +713,10 @@ async function saveShot(vid, idx, val) {
 }
 
 async function writeShots(vid, list) {
-  const existing = shots[vid];
-  const payload  = { video_id: vid, list, count: list.length, updated_at: new Date().toISOString() };
-  let res;
-  if (existing?.id) {
-    res = await sb.from('shots').update(payload).eq('id', existing.id).select().single();
-  } else {
-    res = await sb.from('shots').insert(payload).select().single();
-  }
-  if (res.error) { toast('Shot save failed', true); return; }
+  const payload = { video_id: vid, list, count: list.length, updated_at: new Date().toISOString() };
+  const res = await sb.from('shots').upsert(payload, { onConflict: 'video_id' }).select().single();
+  if (res.error) { toast('Shot save failed', true); console.error(res.error); return; }
   shots[vid] = res.data;
-
-  // patch DOM without full re-render
   const sl = document.getElementById(`sl-${vid}`);
   if (sl) sl.innerHTML = list.map((s, i) => shotRowHTML(vid, s, i)).join('');
   const sc = document.getElementById(`sc-${vid}`);
