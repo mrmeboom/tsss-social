@@ -3,884 +3,855 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sherry Content Board</title>
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-    window.createClient = createClient;
-  </script>
+  <title>Sherry / Content Board</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    :root {
+      --bg:        #0b0a09;
+      --surface:   #141210;
+      --surface-2: #1c1916;
+      --surface-3: #232019;
+      --border:    #2c2820;
+      --border-2:  #3a342a;
+      --gold:      #c07a18;
+      --gold-lt:   #d9911f;
+      --gold-dim:  #7a4e0e;
+      --orange:    #c95c22;
+      --text:      #e8dfd0;
+      --text-2:    #a89880;
+      --text-3:    #5c5248;
+      --danger:    #b83030;
+      --radius:    7px;
     }
 
-    :root {
-      --primary: #2563eb;
-      --primary-dark: #1e40af;
-      --secondary: #64748b;
-      --danger: #dc2626;
-      --success: #16a34a;
-      --warning: #f59e0b;
-      --gray-50: #f9fafb;
-      --gray-100: #f3f4f6;
-      --gray-200: #e5e7eb;
-      --gray-300: #d1d5db;
-      --gray-400: #94a3b8;
-      --gray-500: #6b7280;
-      --gray-600: #4b5563;
-      --gray-700: #374151;
-      --gray-800: #1f2937;
-      --gray-900: #111827;
-      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--gray-50);
-      color: var(--gray-900);
-      line-height: 1.6;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse 60% 40% at 15% -5%,  rgba(192,122,24,.07) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 35% at 90% 105%, rgba(201,92,34,.05)  0%, transparent 55%);
     }
 
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 2rem 1rem;
+    /* ── HEADER ─────────────────────────────────────── */
+    header {
+      position: sticky; top: 0; z-index: 200;
+      background: rgba(11,10,9,.9);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      padding: .9rem 1.4rem;
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
     }
 
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 2rem;
-      padding-bottom: 1rem;
-      border-bottom: 1px solid var(--gray-200);
-    }
-
-    .header h1 {
-      font-size: 1.875rem;
+    .logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.25rem;
       font-weight: 700;
-      color: var(--gray-900);
+      color: var(--gold);
+      letter-spacing: .01em;
+      white-space: nowrap;
+    }
+    .logo em {
+      font-style: normal;
+      color: var(--text-3);
+      font-family: 'DM Mono', monospace;
+      font-size: .7rem;
+      font-weight: 300;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-left: .4rem;
     }
 
-    .header-actions {
-      display: flex;
-      gap: 1rem;
-      align-items: center;
+    .header-right { display: flex; gap: .6rem; align-items: center; }
+
+    /* ── CONTROLS ────────────────────────────────────── */
+    .toolbar {
+      padding: .8rem 1.4rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; gap: .6rem; flex-wrap: wrap; align-items: center;
     }
 
-    .btn {
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 0.5rem;
-      font-size: 0.875rem;
+    .search-wrap { flex: 1; min-width: 160px; max-width: 300px; position: relative; }
+    .search-wrap::before {
+      content: '⌕';
+      position: absolute; left: .6rem; top: 50%; transform: translateY(-50%);
+      color: var(--text-3); font-size: 1rem; pointer-events: none;
+    }
+    .search-wrap input { padding-left: 1.8rem; }
+
+    input[type="text"], input[type="url"], input[type="number"], textarea, select {
+      font-family: 'DM Mono', monospace;
+      font-size: .78rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: var(--radius);
+      padding: .45rem .7rem;
+      width: 100%;
+      outline: none;
+      transition: border-color .15s, background .15s;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--gold);
+      background: var(--surface-3);
+    }
+    input::placeholder, textarea::placeholder { color: var(--text-3); }
+    select option { background: var(--surface-2); }
+
+    .cats {
+      display: flex; gap: .35rem; flex-wrap: wrap; align-items: center;
+    }
+
+    .cat-pill {
+      font-family: 'DM Mono', monospace;
+      font-size: .62rem;
       font-weight: 500;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      padding: .28rem .65rem;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-3);
       cursor: pointer;
-      transition: all 0.2s;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
+      transition: all .15s;
+      white-space: nowrap;
     }
+    .cat-pill:hover  { border-color: var(--gold-dim); color: var(--text-2); }
+    .cat-pill.active { background: var(--gold); border-color: var(--gold); color: #000; }
 
-    .btn-primary {
-      background: var(--primary);
-      color: white;
+    /* ── STATS ───────────────────────────────────────── */
+    .statsbar {
+      padding: .35rem 1.4rem;
+      border-bottom: 1px solid var(--border);
+      font-size: .62rem;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      display: flex; gap: 1.4rem; flex-wrap: wrap;
     }
+    .statsbar b { color: var(--gold); font-weight: 500; }
 
-    .btn-primary:hover {
-      background: var(--primary-dark);
-      transform: translateY(-1px);
-    }
-
-    .video-count {
-      color: var(--gray-600);
-      font-size: 0.875rem;
-    }
-
-    .categories {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-bottom: 2rem;
-    }
-
-    .category-pill {
-      padding: 0.25rem 0.75rem;
-      background: var(--gray-100);
-      border: 1px solid var(--gray-200);
-      border-radius: 9999px;
-      font-size: 0.75rem;
-      color: var(--gray-700);
+    /* ── BUTTONS ─────────────────────────────────────── */
+    .btn {
+      font-family: 'DM Mono', monospace;
+      font-size: .75rem;
+      font-weight: 500;
+      padding: .45rem 1rem;
+      border-radius: var(--radius);
+      border: 1px solid transparent;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all .15s;
+      white-space: nowrap;
     }
+    .btn-gold   { background: var(--gold);  color: #000; border-color: var(--gold); }
+    .btn-gold:hover { background: var(--gold-lt); border-color: var(--gold-lt); }
+    .btn-ghost  { background: transparent; color: var(--text-2); border-color: var(--border); }
+    .btn-ghost:hover { border-color: var(--border-2); color: var(--text); }
+    .btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+    .btn-danger:hover { background: #d44444; border-color: #d44444; }
+    .btn-sm { padding: .3rem .65rem; font-size: .68rem; }
 
-    .category-pill:hover {
-      background: var(--gray-200);
+    .btn-icon {
+      width: 26px; height: 26px;
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--text-3);
+      cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: .75rem;
+      transition: all .15s;
+      flex-shrink: 0;
     }
+    .btn-icon:hover      { border-color: var(--gold-dim); color: var(--gold); }
+    .btn-icon.dng:hover  { border-color: var(--danger); color: var(--danger); }
 
-    .category-pill.active {
-      background: var(--primary);
-      color: white;
-      border-color: var(--primary);
-    }
-
+    /* ── GRID ────────────────────────────────────────── */
     .grid {
+      padding: 1.25rem 1.4rem;
       display: grid;
-      gap: 1.5rem;
-      grid-template-columns: 1fr;
+      gap: 1rem;
+      grid-template-columns: repeat(2, 1fr);
+      align-items: start;
     }
+    @media (min-width: 640px)  { .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 900px)  { .grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (min-width: 1280px) { .grid { grid-template-columns: repeat(4, 1fr); } }
 
-    @media (min-width: 640px) {
-      .grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-
-    @media (min-width: 1024px) {
-      .grid {
-        grid-template-columns: repeat(3, 1fr);
-      }
-    }
-
-    @media (min-width: 1280px) {
-      .grid {
-        grid-template-columns: repeat(4, 1fr);
-      }
-    }
-
+    /* ── CARD ────────────────────────────────────────── */
     .card {
-      background: white;
-      border-radius: 1rem;
-      box-shadow: var(--shadow);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
       overflow: hidden;
-      transition: all 0.3s;
-      border: 1px solid var(--gray-200);
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s;
+      display: flex; flex-direction: column;
     }
-
     .card:hover {
-      box-shadow: var(--shadow-lg);
       transform: translateY(-2px);
+      box-shadow: 0 10px 35px rgba(0,0,0,.5);
+      border-color: var(--border-2);
     }
 
-    .video-container {
+    /* thumb */
+    .thumb {
       position: relative;
-      width: 100%;
-      padding-bottom: 56.25%; /* 16:9 aspect ratio */
-      background: var(--gray-100);
+      aspect-ratio: 16/9;
+      background: var(--surface-2);
       overflow: hidden;
+      flex-shrink: 0;
+    }
+    .thumb img {
+      width: 100%; height: 100%;
+      object-fit: cover; display: block;
+      transition: transform .3s ease;
+    }
+    .card:hover .thumb img { transform: scale(1.03); }
+
+    .thumb-empty {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-3); font-size: 1.6rem;
     }
 
-    .video-container video {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+    .num-badge {
+      position: absolute; top: 5px; left: 5px;
+      background: rgba(0,0,0,.72);
+      backdrop-filter: blur(6px);
+      color: var(--gold);
+      font-size: .58rem; font-weight: 500;
+      padding: 2px 6px; border-radius: 4px;
     }
 
-    .card-content {
-      padding: 1rem;
+    .play-overlay {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: transparent;
+      text-decoration: none;
+      color: #fff;
+      font-size: 1.8rem;
+      opacity: 0;
+      transition: opacity .2s, background .2s;
+    }
+    .thumb:hover .play-overlay { opacity: 1; background: rgba(0,0,0,.38); }
+
+    /* info panel */
+    .info {
+      padding: .65rem .7rem .7rem;
+      display: flex; flex-direction: column; gap: .45rem;
+      flex: 1;
+    }
+
+    .info-top {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: .4rem;
     }
 
     .card-title {
-      font-size: 1rem;
+      font-family: 'Playfair Display', serif;
+      font-size: .82rem;
       font-weight: 600;
-      color: var(--gray-900);
-      margin-bottom: 0.5rem;
-      line-height: 1.4;
-    }
-
-    .card-views {
-      font-size: 0.875rem;
-      color: var(--gray-600);
-      margin-bottom: 1rem;
-    }
-
-    .card-actions {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
-    }
-
-    .btn-small {
-      padding: 0.25rem 0.5rem;
-      font-size: 0.75rem;
-    }
-
-    .btn-edit {
-      background: var(--gray-100);
-      color: var(--gray-700);
-      border: 1px solid var(--gray-200);
-    }
-
-    .btn-edit:hover {
-      background: var(--gray-200);
-    }
-
-    .btn-delete {
-      background: var(--danger);
-      color: white;
-    }
-
-    .btn-delete:hover {
-      background: #b91c1c;
-    }
-
-    .shots-section {
-      border-top: 1px solid var(--gray-200);
-      padding-top: 1rem;
-    }
-
-    .shots-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.75rem;
-    }
-
-    .shots-title {
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: var(--gray-700);
-    }
-
-    .shots-count {
-      background: var(--gray-100);
-      padding: 0.125rem 0.5rem;
-      border-radius: 9999px;
-      font-size: 0.75rem;
-      color: var(--gray-600);
-    }
-
-    .shots-list {
-      list-style: none;
-      margin-bottom: 1rem;
-    }
-
-    .shot-item {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 0.5rem;
-      align-items: center;
-    }
-
-    .shot-input {
+      line-height: 1.35;
+      color: var(--text);
       flex: 1;
-      padding: 0.5rem;
-      border: 1px solid var(--gray-200);
-      border-radius: 0.375rem;
-      font-size: 0.875rem;
-      transition: border-color 0.2s;
+      word-break: break-word;
     }
 
-    .shot-input:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    .card-acts { display: flex; gap: .3rem; flex-shrink: 0; }
+
+    .meta { display: flex; gap: .35rem; flex-wrap: wrap; align-items: center; }
+
+    .badge {
+      font-size: .57rem;
+      font-weight: 500;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 10px;
+      border: 1px solid;
+      white-space: nowrap;
+    }
+    .badge-cat    { border-color: var(--orange);  color: var(--orange); }
+    .badge-views  { border-color: var(--text-3);  color: var(--text-2); }
+    .badge-shots  { border-color: var(--gold-dim); color: var(--gold); }
+
+    /* shots */
+    .shots-wrap {
+      border-top: 1px solid var(--border);
+      padding-top: .45rem;
     }
 
-    .btn-remove {
-      background: var(--danger);
-      color: white;
-      border: none;
-      border-radius: 0.375rem;
-      width: 1.5rem;
-      height: 1.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: background 0.2s;
+    .shots-hd {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: .35rem;
     }
 
-    .btn-remove:hover {
-      background: #b91c1c;
+    .shots-label {
+      font-size: .58rem;
+      text-transform: uppercase; letter-spacing: .1em;
+      color: var(--text-3);
     }
 
     .btn-add-shot {
-      width: 100%;
-      padding: 0.5rem;
-      background: var(--gray-100);
-      border: 1px dashed var(--gray-300);
-      border-radius: 0.375rem;
-      color: var(--gray-600);
-      cursor: pointer;
-      transition: all 0.2s;
-      font-size: 0.875rem;
+      background: none; border: none;
+      color: var(--gold); font-size: .68rem;
+      font-family: 'DM Mono', monospace;
+      cursor: pointer; padding: 0;
+      transition: color .15s;
+    }
+    .btn-add-shot:hover { color: var(--gold-lt); }
+
+    .shots-list { display: flex; flex-direction: column; gap: .28rem; }
+
+    .shot-row { display: flex; align-items: center; gap: .35rem; }
+    .shot-row::before {
+      content: '—'; color: var(--text-3); font-size: .65rem; flex-shrink: 0;
     }
 
-    .btn-add-shot:hover {
-      background: var(--gray-200);
-      border-color: var(--gray-400);
+    .shot-input {
+      flex: 1; font-size: .7rem;
+      padding: .22rem .4rem;
+      min-width: 0;
     }
 
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      opacity: 0;
-      visibility: hidden;
-      transition: all 0.3s;
+    .btn-del-shot {
+      background: none; border: none;
+      color: var(--text-3); font-size: .7rem;
+      cursor: pointer; padding: 0;
+      transition: color .15s; flex-shrink: 0;
     }
+    .btn-del-shot:hover { color: var(--danger); }
 
-    .modal-overlay.active {
-      opacity: 1;
-      visibility: visible;
+    /* ── EMPTY / LOADING ─────────────────────────────── */
+    .state-msg {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--text-3);
     }
+    .state-msg .icon { font-size: 2.2rem; margin-bottom: .5rem; opacity: .4; }
+    .state-msg p { font-size: .8rem; color: var(--text-2); margin-top: .3rem; }
+
+    .spinner {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 2px solid var(--border-2);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin-bottom: .5rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── MODAL ───────────────────────────────────────── */
+    .overlay {
+      display: none; position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,.78);
+      backdrop-filter: blur(8px);
+      align-items: center; justify-content: center;
+      padding: 1rem;
+    }
+    .overlay.open { display: flex; }
 
     .modal {
-      background: white;
-      border-radius: 1rem;
-      box-shadow: var(--shadow-lg);
-      max-width: 500px;
-      width: 90%;
-      max-height: 90vh;
+      background: var(--surface);
+      border: 1px solid var(--border-2);
+      border-radius: 12px;
+      width: 100%; max-width: 460px;
+      max-height: 92vh;
       overflow-y: auto;
-      transform: scale(0.9);
-      transition: transform 0.3s;
+      box-shadow: 0 24px 70px rgba(0,0,0,.7);
     }
 
-    .modal-overlay.active .modal {
-      transform: scale(1);
+    .modal-hd {
+      padding: 1.1rem 1.4rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+      position: sticky; top: 0; background: var(--surface); z-index: 1;
     }
-
-    .modal-header {
-      padding: 1.5rem 1.5rem 0;
-      border-bottom: 1px solid var(--gray-200);
+    .modal-ttl {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem; color: var(--gold);
     }
-
-    .modal-title {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: var(--gray-900);
+    .modal-x {
+      background: none; border: none;
+      color: var(--text-3); font-size: 1.1rem;
+      cursor: pointer; line-height: 1;
+      transition: color .15s;
     }
+    .modal-x:hover { color: var(--text); }
 
     .modal-body {
-      padding: 1.5rem;
+      padding: 1.3rem 1.4rem;
+      display: flex; flex-direction: column; gap: .9rem;
     }
 
-    .form-group {
-      margin-bottom: 1.5rem;
-    }
-
-    .form-label {
+    .fg label {
       display: block;
-      margin-bottom: 0.5rem;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: var(--gray-700);
+      font-size: .62rem;
+      text-transform: uppercase; letter-spacing: .09em;
+      color: var(--text-3);
+      margin-bottom: .35rem;
+    }
+    .fg-row { display: flex; gap: .6rem; }
+    .fg-row .fg { flex: 1; }
+
+    .modal-ft {
+      padding: .9rem 1.4rem;
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: flex-end; gap: .6rem;
     }
 
-    .form-input {
-      width: 100%;
-      padding: 0.75rem;
-      border: 1px solid var(--gray-200);
-      border-radius: 0.5rem;
-      font-size: 0.875rem;
-      transition: border-color 0.2s;
+    /* ── CONFIRM ─────────────────────────────────────── */
+    .confirm-box {
+      background: var(--surface);
+      border: 1px solid var(--border-2);
+      border-radius: 12px;
+      padding: 1.6rem;
+      max-width: 300px; width: 90%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,.7);
     }
+    .confirm-box .c-icon { font-size: 1.8rem; color: var(--danger); margin-bottom: .5rem; }
+    .confirm-box h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: .95rem; color: var(--text);
+      margin-bottom: .5rem;
+    }
+    .confirm-box p { font-size: .75rem; color: var(--text-2); line-height: 1.5; margin-bottom: 1.1rem; }
+    .confirm-acts { display: flex; gap: .6rem; justify-content: center; }
 
-    .form-input:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    /* ── TOAST ───────────────────────────────────────── */
+    .toast {
+      position: fixed; bottom: 1.4rem; right: 1.4rem;
+      background: var(--surface-3);
+      border: 1px solid var(--border-2);
+      border-left: 3px solid var(--gold);
+      color: var(--text);
+      font-size: .75rem;
+      padding: .65rem 1rem;
+      border-radius: var(--radius);
+      z-index: 9999;
+      max-width: 260px;
+      transform: translateX(130%);
+      transition: transform .28s cubic-bezier(.34,1.56,.64,1);
+      pointer-events: none;
     }
+    .toast.show { transform: translateX(0); }
+    .toast.err  { border-left-color: var(--danger); }
 
-    .modal-footer {
-      padding: 1rem 1.5rem 1.5rem;
-      border-top: 1px solid var(--gray-200);
-      display: flex;
-      gap: 1rem;
-      justify-content: flex-end;
-    }
-
-    .loading {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem;
-      color: var(--gray-600);
-    }
-
-    .error {
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-      color: #dc2626;
-      padding: 1rem;
-      border-radius: 0.5rem;
-      margin: 1rem 0;
-    }
-
-    @media (max-width: 640px) {
-      .container {
-        padding: 1rem 0.5rem;
-      }
-      
-      .header {
-        flex-direction: column;
-        gap: 1rem;
-        align-items: flex-start;
-      }
-      
-      .modal {
-        width: 95%;
-      }
-    }
+    /* ── SCROLLBAR ───────────────────────────────────── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--gold-dim); }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header class="header">
-      <h1>Sherry Content Board</h1>
-      <div class="header-actions">
-        <button class="btn btn-primary" onclick="app.openModal()">
-          <span>+</span> Add Video
-        </button>
-        <span class="video-count" id="videoCount">0 videos</span>
-      </div>
-    </header>
 
-    <div class="categories" id="categories">
-      <button class="category-pill active" data-category="all">All</button>
-    </div>
-
-    <main>
-      <div class="loading" id="loading" style="display: none;">
-        Loading videos...
-      </div>
-      
-      <div class="error" id="error" style="display: none;">
-        Error loading videos. Please refresh the page.
-      </div>
-      
-      <div class="grid" id="videoGrid">
-        <!-- Videos will be rendered here -->
-      </div>
-    </main>
+<!-- HEADER -->
+<header>
+  <div class="logo">Sherry <em>content board</em></div>
+  <div class="header-right">
+    <button class="btn btn-gold" onclick="openModal()">+ Add Video</button>
   </div>
+</header>
 
-  <div class="modal-overlay" id="modalOverlay">
-    <div class="modal">
-      <div class="modal-header">
-        <h2 class="modal-title" id="modalTitle">Add Video</h2>
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <div class="search-wrap">
+    <input type="text" id="search" placeholder="Search…" oninput="render()">
+  </div>
+  <div class="cats" id="cats">
+    <button class="cat-pill active" data-cat="all" onclick="setCat(this)">All</button>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="statsbar" id="stats">
+  <span>Loading…</span>
+</div>
+
+<!-- GRID -->
+<div class="grid" id="grid">
+  <div class="state-msg"><div class="spinner"></div><p>Loading videos…</p></div>
+</div>
+
+<!-- MODAL: Add / Edit -->
+<div class="overlay" id="modalOv" onclick="ovClick(event,'modalOv',closeModal)">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-ttl" id="modalTtl">Add Video</span>
+      <button class="modal-x" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg-row">
+        <div class="fg" style="max-width:90px">
+          <label>Number</label>
+          <input type="number" id="fNum" placeholder="42">
+        </div>
+        <div class="fg">
+          <label>Title *</label>
+          <input type="text" id="fTitle" placeholder="Video title">
+        </div>
       </div>
-      <div class="modal-body">
-        <form id="videoForm">
-          <div class="form-group">
-            <label class="form-label" for="title">Title *</label>
-            <input type="text" id="title" name="title" class="form-input" placeholder="Enter video title" required>
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label" for="views">Views</label>
-            <input type="text" id="views" name="views" class="form-input" placeholder="e.g., 10K, 100K">
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label" for="url">Video URL *</label>
-            <input type="url" id="url" name="url" class="form-input" placeholder="https://..." required>
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label" for="category">Category</label>
-            <select id="category" name="category" class="form-input">
-              <option value="">No category</option>
-              <option value="Thuis">Thuis</option>
-              <option value="Feria">Feria</option>
-              <option value="Tussendoor">Tussendoor</option>
-              <option value="Veel werk">Veel werk</option>
-              <option value="Tsja">Tsja</option>
-              <option value="Klaar">Klaar</option>
-            </select>
-          </div>
-        </form>
+      <div class="fg">
+        <label>URL * (YouTube or Cloudinary)</label>
+        <input type="url" id="fUrl" placeholder="https://…">
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-primary" id="saveBtn">Save</button>
-        <button type="button" class="btn" onclick="app.closeModal()">Cancel</button>
+      <div class="fg-row">
+        <div class="fg">
+          <label>Category</label>
+          <select id="fCat">
+            <option value="">— none —</option>
+            <option>Thuis</option>
+            <option>Feria</option>
+            <option>Tussendoor</option>
+            <option>Veel werk</option>
+            <option>Tsja</option>
+            <option>Klaar</option>
+          </select>
+        </div>
+        <div class="fg" style="max-width:120px">
+          <label>Views</label>
+          <input type="text" id="fViews" placeholder="1.2K">
+        </div>
       </div>
     </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-gold" onclick="saveVideo()">Save</button>
+    </div>
   </div>
+</div>
 
-  <script>
-    // Supabase configuration
-    const SUPABASE_URL = 'https://gyavdaefgzmsuvtufzfr.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5YXZkYWVmZ3ptc3V2dHVmemZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMzIzNTEsImV4cCI6MjA5MzkwODM1MX0.WNwYckpRgUVMNCsGiZQrkES6Eg6x-aoi83-RMb0jeAI';
+<!-- MODAL: Confirm delete -->
+<div class="overlay" id="confirmOv" onclick="ovClick(event,'confirmOv',closeConfirm)">
+  <div class="confirm-box">
+    <div class="c-icon">⚠</div>
+    <h3>Delete Video</h3>
+    <p>This will also remove all its shots. Are you sure?</p>
+    <div class="confirm-acts">
+      <button class="btn btn-ghost btn-sm" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-danger btn-sm" id="confirmBtn">Delete</button>
+    </div>
+  </div>
+</div>
 
-    // Application state
-    class AppState {
-      constructor() {
-        this.videos = [];
-        this.shots = {};
-        this.categories = ['Thuis', 'Feria', 'Tussendoor', 'Veel werk', 'Tsja', 'Klaar'];
-        this.currentFilter = 'all';
-        this.currentEditId = null;
-        this.loading = false;
-        this.error = null;
-      }
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
 
-      async initialize() {
-        if (!window.createClient) {
-          throw new Error('Supabase client not available');
-        }
+<script>
+// ─── Supabase ─────────────────────────────────────────
+const { createClient } = supabase;
+const sb = createClient(
+  'https://gyavdaefgzmsuvtufzfr.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5YXZkYWVmZ3ptc3V2dHVmemZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMzIzNTEsImV4cCI6MjA5MzkwODM1MX0.WNwYckpRgUVMNCsGiZQrkES6Eg6x-aoi83-RMb0jeAI'
+);
 
-        this.supabase = window.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        await this.loadState();
-        this.render();
-      }
+// ─── State ────────────────────────────────────────────
+let videos = [];
+let shots  = {}; // keyed by video_id
+let activeCat = 'all';
 
-      async loadState() {
-        try {
-          const { data: videos, error } = await this.supabase
-            .from('videos')
-            .select('*')
-            .order('created_at', { ascending: false });
+// ─── Utils ────────────────────────────────────────────
+function esc(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
-          if (error) throw error;
+function thumb(url) {
+  if (!url) return null;
+  // YouTube full / short / shorts
+  const yt = url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  if (yt) return `https://img.youtube.com/vi/${yt[1]}/hqdefault.jpg`;
+  // Cloudinary video → grab poster
+  if (url.includes('cloudinary.com') && /\.(mp4|mov|webm)/i.test(url)) {
+    return url
+      .replace('/video/upload/', '/video/upload/so_auto,w_480,f_jpg/')
+      .replace(/\.(mp4|mov|webm)$/i, '.jpg');
+  }
+  // Cloudinary image
+  if (url.includes('cloudinary.com') && url.includes('/image/')) {
+    return url.replace('/image/upload/', '/image/upload/w_480,c_fill/');
+  }
+  return null;
+}
 
-          this.videos = videos || [];
+function toast(msg, err = false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (err ? ' err' : '');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 3200);
+}
 
-          // Load shots for each video
-          const { data: shots } = await this.supabase
-            .from('shots')
-            .select('*')
-            .in('video_id', this.videos.map(v => v.id));
+function ovClick(e, id, fn) {
+  if (e.target === document.getElementById(id)) fn();
+}
 
-          if (shots && !shots.error) {
-            this.shots = shots.reduce((acc, shot) => {
-              acc[shot.video_id] = shot;
-              return acc;
-            }, {});
-          }
+// ─── Load ─────────────────────────────────────────────
+async function loadAll() {
+  const [vr, sr] = await Promise.all([
+    sb.from('videos').select('*').order('num', { ascending: true, nullsLast: true }),
+    sb.from('shots').select('*')
+  ]);
+  if (vr.error) { toast('Load failed: ' + vr.error.message, true); grid('err'); return; }
+  videos = vr.data || [];
+  shots = {};
+  for (const s of (sr.data || [])) shots[s.video_id] = s;
+  buildCats();
+  render();
+}
 
-        } catch (error) {
-          this.error = 'Failed to load data';
-          console.error('Load error:', error);
-        }
-      }
+// ─── Category bar ─────────────────────────────────────
+const CAT_ORDER = ['Thuis','Feria','Tussendoor','Veel werk','Tsja','Klaar'];
 
-      async saveVideo(video) {
-        try {
-          const videoData = {
-            title: video.title,
-            views: video.views || '',
-            url: video.url,
-            category: video.category || null,
-            updated_at: new Date().toISOString()
-          };
+function buildCats() {
+  const el = document.getElementById('cats');
+  const counts = {};
+  videos.forEach(v => { if (v.category) counts[v.category] = (counts[v.category] || 0) + 1; });
+  let html = `<button class="cat-pill${activeCat==='all'?' active':''}" data-cat="all" onclick="setCat(this)">All <span style="opacity:.6">${videos.length}</span></button>`;
+  CAT_ORDER.forEach(c => {
+    if (!counts[c]) return;
+    html += `<button class="cat-pill${activeCat===c?' active':''}" data-cat="${c}" onclick="setCat(this)">${c} <span style="opacity:.6">${counts[c]}</span></button>`;
+  });
+  el.innerHTML = html;
+}
 
-          if (video.id) {
-            // Update existing video
-            const { error } = await this.supabase
-              .from('videos')
-              .update(videoData)
-              .eq('id', video.id);
+function setCat(btn) {
+  activeCat = btn.dataset.cat;
+  document.querySelectorAll('.cat-pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
 
-            if (error) throw error;
-          } else {
-            // Create new video
-            const { data, error } = await this.supabase
-              .from('videos')
-              .insert({
-                ...videoData,
-                created_at: new Date().toISOString()
-              })
-              .select()
-              .single();
+// ─── Render ───────────────────────────────────────────
+function grid(state) {
+  const g = document.getElementById('grid');
+  if (state === 'loading') { g.innerHTML = `<div class="state-msg"><div class="spinner"></div><p>Loading…</p></div>`; return; }
+  if (state === 'err')     { g.innerHTML = `<div class="state-msg"><div class="icon">✖</div><p>Could not connect to database.</p></div>`; return; }
+}
 
-            if (error) throw error;
-            video.id = data.id;
-          }
+function render() {
+  const q = document.getElementById('search').value.toLowerCase().trim();
+  const filtered = videos.filter(v => {
+    const ms = !q || (v.title||'').toLowerCase().includes(q) || String(v.num||'').includes(q);
+    const mc = activeCat === 'all' || v.category === activeCat;
+    return ms && mc;
+  });
 
-          await this.loadState();
-          return video;
-        } catch (error) {
-          this.error = 'Failed to save video';
-          console.error('Save error:', error);
-          throw error;
-        }
-      }
+  // stats
+  const totalShots = Object.values(shots).reduce((a, s) => a + (s.list?.length || s.count || 0), 0);
+  const catSet = new Set(videos.map(v => v.category).filter(Boolean));
+  document.getElementById('stats').innerHTML =
+    `Videos <b>${filtered.length}</b> of <b>${videos.length}</b> &nbsp;·&nbsp; Shots <b>${totalShots}</b> &nbsp;·&nbsp; Categories <b>${catSet.size}</b>`;
 
-      async deleteVideo(id) {
-        try {
-          const { error } = await this.supabase
-            .from('videos')
-            .delete()
-            .eq('id', id);
+  const g = document.getElementById('grid');
+  if (!filtered.length) {
+    g.innerHTML = `<div class="state-msg"><div class="icon">▣</div><p>${
+      videos.length ? 'No videos match your filter.' : 'No videos yet — add your first one.'
+    }</p></div>`;
+    return;
+  }
+  g.innerHTML = filtered.map(cardHTML).join('');
+}
 
-          if (error) throw error;
+// ─── Card ─────────────────────────────────────────────
+function cardHTML(v) {
+  const t  = thumb(v.url);
+  const sh = shots[v.id];
+  const list = sh?.list || [];
+  const shotCount = list.length || sh?.count || 0;
 
-          await this.loadState();
-        } catch (error) {
-          this.error = 'Failed to delete video';
-          console.error('Delete error:', error);
-          throw error;
-        }
-      }
+  return `
+  <div class="card" id="card-${v.id}">
+    <div class="thumb">
+      ${v.num != null ? `<div class="num-badge">#${v.num}</div>` : ''}
+      ${t
+        ? `<img src="${esc(t)}" alt="${esc(v.title)}" loading="lazy"
+               onerror="this.parentNode.innerHTML='<div class=\\"thumb-empty\\">▣</div>'">`
+        : `<div class="thumb-empty">▣</div>`}
+      ${v.url ? `<a class="play-overlay" href="${esc(v.url)}" target="_blank" rel="noopener">▶</a>` : ''}
+    </div>
+    <div class="info">
+      <div class="info-top">
+        <div class="card-title">${esc(v.title || 'Untitled')}</div>
+        <div class="card-acts">
+          <button class="btn-icon" onclick="openModal(${v.id})" title="Edit">✎</button>
+          <button class="btn-icon dng" onclick="confirmDel(${v.id})" title="Delete">✕</button>
+        </div>
+      </div>
+      <div class="meta">
+        ${v.category ? `<span class="badge badge-cat">${esc(v.category)}</span>` : ''}
+        ${v.views    ? `<span class="badge badge-views">👁 ${esc(v.views)}</span>` : ''}
+        <span class="badge badge-shots" id="sc-${v.id}">⚡ ${shotCount}</span>
+      </div>
+      <div class="shots-wrap">
+        <div class="shots-hd">
+          <span class="shots-label">Shots</span>
+          <button class="btn-add-shot" onclick="addShot(${v.id})">+ add</button>
+        </div>
+        <div class="shots-list" id="sl-${v.id}">
+          ${list.map((s, i) => shotRowHTML(v.id, s, i)).join('')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
 
-      async saveShots(videoId, shots) {
-        try {
-          const { error } = await this.supabase
-            .from('shots')
-            .upsert({
-              video_id: videoId,
-              list: shots,
-              count: shots.filter(s => s.trim()).length,
-              updated_at: new Date().toISOString()
-            });
+function shotRowHTML(vid, val, idx) {
+  return `
+  <div class="shot-row">
+    <input class="shot-input" type="text" value="${esc(val)}"
+      onblur="saveShot(${vid},${idx},this.value)"
+      onkeydown="if(event.key==='Enter')this.blur()">
+    <button class="btn-del-shot" onclick="delShot(${vid},${idx})">✕</button>
+  </div>`;
+}
 
-          if (error) throw error;
+// ─── Shot ops ─────────────────────────────────────────
+async function addShot(vid) {
+  const list = [...(shots[vid]?.list || []), ''];
+  await writeShots(vid, list);
+  // focus the new input
+  const sl = document.getElementById(`sl-${vid}`);
+  if (sl) sl.querySelector('.shot-row:last-child input')?.focus();
+}
 
-          this.shots[videoId] = {
-            video_id: videoId,
-            list: shots,
-            count: shots.filter(s => s.trim()).length
-          };
-        } catch (error) {
-          this.error = 'Failed to save shots';
-          console.error('Shots save error:', error);
-          throw error;
-        }
-      }
+async function delShot(vid, idx) {
+  const list = [...(shots[vid]?.list || [])];
+  list.splice(idx, 1);
+  await writeShots(vid, list);
+}
 
-      getFilteredVideos() {
-        if (this.currentFilter === 'all') {
-          return this.videos;
-        }
-        return this.videos.filter(video => video.category === this.currentFilter);
-      }
+async function saveShot(vid, idx, val) {
+  const list = [...(shots[vid]?.list || [])];
+  if (list[idx] === val) return;
+  list[idx] = val;
+  await writeShots(vid, list);
+}
 
-      render() {
-        // Update video count
-        document.getElementById('videoCount').textContent = `${this.videos.length} videos`;
+async function writeShots(vid, list) {
+  const existing = shots[vid];
+  const payload  = { video_id: vid, list, count: list.length, updated_at: new Date().toISOString() };
+  let res;
+  if (existing?.id) {
+    res = await sb.from('shots').update(payload).eq('id', existing.id).select().single();
+  } else {
+    res = await sb.from('shots').insert(payload).select().single();
+  }
+  if (res.error) { toast('Shot save failed', true); return; }
+  shots[vid] = res.data;
 
-        // Show/hide loading and error states
-        document.getElementById('loading').style.display = this.loading ? 'flex' : 'none';
-        document.getElementById('error').style.display = this.error ? 'block' : 'none';
+  // patch DOM without full re-render
+  const sl = document.getElementById(`sl-${vid}`);
+  if (sl) sl.innerHTML = list.map((s, i) => shotRowHTML(vid, s, i)).join('');
+  const sc = document.getElementById(`sc-${vid}`);
+  if (sc) sc.textContent = `⚡ ${list.length}`;
+}
 
-        // Render videos
-        const videoGrid = document.getElementById('videoGrid');
-        const filteredVideos = this.getFilteredVideos();
-        
-        videoGrid.innerHTML = '';
-        
-        if (filteredVideos.length === 0 && !this.loading) {
-          videoGrid.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--gray-500);">No videos found</div>';
-          return;
-        }
+// ─── Video CRUD ───────────────────────────────────────
+let editId = null;
 
-        filteredVideos.forEach(video => {
-          const videoCard = this.createVideoCard(video);
-          videoGrid.appendChild(videoCard);
-        });
-      }
+function openModal(id) {
+  editId = id || null;
+  document.getElementById('modalTtl').textContent = id ? 'Edit Video' : 'Add Video';
+  const v = id ? videos.find(x => x.id === id) : null;
+  document.getElementById('fNum').value   = v?.num   ?? '';
+  document.getElementById('fTitle').value = v?.title ?? '';
+  document.getElementById('fUrl').value   = v?.url   ?? '';
+  document.getElementById('fCat').value   = v?.category ?? '';
+  document.getElementById('fViews').value = v?.views ?? '';
+  document.getElementById('modalOv').classList.add('open');
+  setTimeout(() => document.getElementById('fTitle').focus(), 80);
+}
 
-      createVideoCard(video) {
-        const card = document.createElement('div');
-        card.className = 'card';
-        
-        const shots = this.shots[video.id] || { list: [], count: 0 };
-        
-        card.innerHTML = `
-          <div class="video-container">
-            <video preload="metadata" playsinline>
-              <source src="${video.url}" type="video/mp4">
-            </video>
-          </div>
-          <div class="card-content">
-            <h3 class="card-title">${this.escapeHtml(video.title)}</h3>
-            <p class="card-views">${video.views || 'No views'}</p>
-            <div class="card-actions">
-              <button class="btn btn-small btn-edit" onclick="app.editVideo(${video.id})">Edit</button>
-              <button class="btn btn-small btn-delete" onclick="app.deleteVideo(${video.id})">Delete</button>
-            </div>
-            <div class="shots-section">
-              <div class="shots-header">
-                <span class="shots-title">Shots</span>
-                <span class="shots-count">${shots.count}</span>
-              </div>
-              <ul class="shots-list">
-                ${shots.list.map((shot, index) => `
-                  <li class="shot-item">
-                    <input type="text" class="shot-input" value="${this.escapeHtml(shot)}" 
-                           onchange="app.updateShot(${video.id}, ${index}, this.value)"
-                           placeholder="Shot description">
-                    <button class="btn-remove" onclick="app.removeShot(${video.id}, ${index})">×</button>
-                  </li>
-                `).join('')}
-                ${shots.list.length === 0 ? '<span style="color: var(--gray-500); font-size: 0.875rem;">No shots yet</span>' : ''}
-              </ul>
-              <button class="btn-add-shot" onclick="app.addShot(${video.id})">+ Add Shot</button>
-            </div>
-          </div>
-        `;
+function closeModal() {
+  document.getElementById('modalOv').classList.remove('open');
+  editId = null;
+}
 
-        return card;
-      }
+async function saveVideo() {
+  const title = document.getElementById('fTitle').value.trim();
+  const url   = document.getElementById('fUrl').value.trim();
+  if (!title) { toast('Title is required', true); return; }
+  if (!url)   { toast('URL is required', true); return; }
 
-      escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-      }
+  const numVal = document.getElementById('fNum').value.trim();
+  const payload = {
+    title,
+    url,
+    category: document.getElementById('fCat').value || null,
+    views:    document.getElementById('fViews').value.trim() || null,
+    num:      numVal !== '' ? parseInt(numVal) : null,
+    updated_at: new Date().toISOString()
+  };
 
-      openModal(video = null) {
-        this.currentEditId = video?.id || null;
-        const modal = document.getElementById('modalOverlay');
-        const title = document.getElementById('modalTitle');
-        const form = document.getElementById('videoForm');
-        
-        title.textContent = video ? 'Edit Video' : 'Add Video';
-        
-        if (video) {
-          document.getElementById('title').value = video.title || '';
-          document.getElementById('views').value = video.views || '';
-          document.getElementById('url').value = video.url || '';
-          document.getElementById('category').value = video.category || '';
-        } else {
-          form.reset();
-        }
-        
-        modal.classList.add('active');
-      }
+  let res;
+  if (editId) {
+    res = await sb.from('videos').update(payload).eq('id', editId).select().single();
+  } else {
+    res = await sb.from('videos').insert(payload).select().single();
+  }
+  if (res.error) { toast('Save failed: ' + res.error.message, true); return; }
 
-      closeModal() {
-        const modal = document.getElementById('modalOverlay');
-        modal.classList.remove('active');
-        this.currentEditId = null;
-      }
+  if (editId) {
+    videos = videos.map(v => v.id === editId ? res.data : v);
+    toast('Video updated ✓');
+  } else {
+    videos.push(res.data);
+    toast('Video added ✓');
+  }
 
-      async saveVideo() {
-        const form = document.getElementById('videoForm');
-        const formData = new FormData(form);
-        
-        const video = {
-          id: this.currentEditId,
-          title: formData.get('title')?.trim(),
-          views: formData.get('views')?.trim(),
-          url: formData.get('url')?.trim(),
-          category: formData.get('category') || null
-        };
+  closeModal();
+  buildCats();
+  render();
+}
 
-        if (!video.title || !video.url) {
-          alert('Title and URL are required');
-          return;
-        }
+// ─── Delete ───────────────────────────────────────────
+let pendingDel = null;
 
-        try {
-          await this.saveVideoToDatabase(video);
-          this.closeModal();
-        } catch (error) {
-          alert('Error saving video: ' + error.message);
-        }
-      }
+function confirmDel(id) {
+  pendingDel = id;
+  document.getElementById('confirmOv').classList.add('open');
+  document.getElementById('confirmBtn').onclick = doDelete;
+}
 
-      async deleteVideo(id) {
-        if (!confirm('Are you sure you want to delete this video?')) {
-          return;
-        }
+function closeConfirm() {
+  document.getElementById('confirmOv').classList.remove('open');
+  pendingDel = null;
+}
 
-        try {
-          await this.deleteVideo(id);
-        } catch (error) {
-          alert('Error deleting video: ' + error.message);
-        }
-      }
+async function doDelete() {
+  if (!pendingDel) return;
+  closeConfirm();
+  const res = await sb.from('videos').delete().eq('id', pendingDel);
+  if (res.error) { toast('Delete failed: ' + res.error.message, true); return; }
+  videos = videos.filter(v => v.id !== pendingDel);
+  delete shots[pendingDel];
+  toast('Deleted');
+  buildCats();
+  render();
+}
 
-      async updateShot(videoId, shotIndex, value) {
-        const shots = [...(this.shots[videoId]?.list || [])];
-        shots[shotIndex] = value;
-        
-        try {
-          await this.saveShots(videoId, shots);
-        } catch (error) {
-          alert('Error saving shot: ' + error.message);
-        }
-      }
+// ─── Keyboard ─────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeModal(); closeConfirm(); }
+});
 
-      async addShot(videoId) {
-        const shots = [...(this.shots[videoId]?.list || [])];
-        shots.push('');
-        
-        try {
-          await this.saveShots(videoId, shots);
-        } catch (error) {
-          alert('Error adding shot: ' + error.message);
-        }
-      }
-
-      async removeShot(videoId, shotIndex) {
-        const shots = [...(this.shots[videoId]?.list || [])];
-        shots.splice(shotIndex, 1);
-        
-        try {
-          await this.saveShots(videoId, shots);
-        } catch (error) {
-          alert('Error removing shot: ' + error.message);
-        }
-      }
-
-      setFilter(category) {
-        this.currentFilter = category;
-        
-        // Update category pills
-        document.querySelectorAll('.category-pill').forEach(pill => {
-          pill.classList.remove('active');
-        });
-        
-        const activePill = document.querySelector(`[data-category="${category}"]`);
-        if (activePill) {
-          activePill.classList.add('active');
-        }
-        
-        this.render();
-      }
-    }
-
-    // Initialize application
-    const app = new AppState();
-    
-    // Event listeners
-    document.addEventListener('DOMContentLoaded', async () => {
-      try {
-        await app.initialize();
-        
-        // Set up event listeners
-        document.getElementById('saveBtn').addEventListener('click', () => app.saveVideo());
-        document.getElementById('modalOverlay').addEventListener('click', (e) => {
-          if (e.target.id === 'modalOverlay') {
-            app.closeModal();
-          }
-        });
-        
-        // Create category filter pills
-        const categoriesContainer = document.getElementById('categories');
-        app.categories.forEach(category => {
-          const pill = document.createElement('button');
-          pill.className = 'category-pill';
-          pill.textContent = category;
-          pill.dataset.category = category;
-          pill.addEventListener('click', () => app.setFilter(category));
-          categoriesContainer.appendChild(pill);
-        });
-        
-      } catch (error) {
-        console.error('Initialization error:', error);
-        document.getElementById('error').style.display = 'block';
-        document.getElementById('loading').style.display = 'none';
-      }
-    });
-  </script>
+// ─── Boot ─────────────────────────────────────────────
+loadAll();
+</script>
 </body>
 </html>
