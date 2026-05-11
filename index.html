@@ -608,8 +608,7 @@ function buildCats() {
   videos.forEach(v => { if (v.category) counts[v.category] = (counts[v.category] || 0) + 1; });
   let html = `<button class="cat-pill${activeCat==='all'?' active':''}" data-cat="all" onclick="setCat(this)">All <span style="opacity:.6">${videos.length}</span></button>`;
   cats.forEach(c => {
-    if (!counts[c]) return;
-    html += `<button class="cat-pill${activeCat===c?' active':''}" data-cat="${c}" onclick="setCat(this)">${c} <span style="opacity:.6">${counts[c]}</span> <span style="margin-left: 0.3rem; cursor: pointer;" onclick="event.stopPropagation(); deleteCat('${c}')">×</span></button>`;
+    html += `<button class="cat-pill${activeCat===c?' active':''}" data-cat="${c}" onclick="setCat(this)">${c} ${counts[c] ? `<span style="opacity:.6">${counts[c]}</span>` : ''} <span style="margin-left: 0.3rem; cursor: pointer;" onclick="event.stopPropagation(); deleteCat('${c}')">×</span></button>`;
   });
   el.innerHTML = html;
 }
