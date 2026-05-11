@@ -205,7 +205,7 @@
     /* thumb */
     .thumb {
       position: relative;
-      aspect-ratio: 16/9;
+      aspect-ratio: 9/16;
       background: var(--surface-2);
       overflow: hidden;
       flex-shrink: 0;
@@ -548,6 +548,7 @@ const sb = createClient(
 
 // ─── State ────────────────────────────────────────────
 let videos = [];
+let shots  = {}; // keyed by video_id
 let activeCat = 'all';
 
 // ─── Utils ────────────────────────────────────────────
@@ -558,7 +559,20 @@ function esc(s) {
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-
+function thumb(url) {
+  if (!url) return null;
+  // Cloudinary video → grab poster
+  if (url.includes('cloudinary.com') && /\.(mp4|mov|webm)/i.test(url)) {
+    return url
+      .replace('/video/upload/', '/video/upload/so_auto,w_480,f_jpg/')
+      .replace(/\.(mp4|mov|webm)$/i, '.jpg');
+  }
+  // Cloudinary image
+  if (url.includes('cloudinary.com') && url.includes('/image/')) {
+    return url.replace('/image/upload/', '/image/upload/w_480,c_fill/');
+  }
+  return null;
+}
 
 function toast(msg, err = false) {
   const el = document.getElementById('toast');
@@ -618,6 +632,7 @@ function render() {
     return ms && mc;
   });
 
+  // stats
   const totalShots = videos.reduce((a, v) => a + (v.shots?.length || 0), 0);
   const catSet = new Set(videos.map(v => v.category).filter(Boolean));
   document.getElementById('stats').innerHTML =
@@ -635,6 +650,7 @@ function render() {
 
 // ─── Card ─────────────────────────────────────────────
 function cardHTML(v) {
+  const t  = thumb(v.url);
   const list = v.shots || [];
   const shotCount = list.length;
 
@@ -642,9 +658,7 @@ function cardHTML(v) {
   <div class="card" id="card-${v.id}">
     <div class="thumb">
       ${v.num != null ? `<div class="num-badge">#${v.num}</div>` : ''}
-      ${v.url
-        ? `<video src="${esc(v.url)}" controls preload="metadata" playsinline></video>`
-        : `<div class="thumb-empty">▣</div>`}
+      ${t ? `<video src="${esc(v.url)}" controls preload="metadata" playsinline></video>` : `<div class="thumb-empty">▣</div>`}
     </div>
     <div class="info">
       <div class="info-top">
