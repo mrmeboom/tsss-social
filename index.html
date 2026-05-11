@@ -501,15 +501,7 @@
       <div class="fg-row">
         <div class="fg">
           <label>Category</label>
-          <select id="fCat">
-            <option value="">— none —</option>
-            <option>Thuis</option>
-            <option>Feria</option>
-            <option>Tussendoor</option>
-            <option>Veel werk</option>
-            <option>Tsja</option>
-            <option>Klaar</option>
-          </select>
+          <select id="fCat"></select>
         </div>
         <div class="fg" style="max-width:120px">
           <label>Views</label>
@@ -767,6 +759,10 @@ function openModal(id) {
   editId = id || null;
   document.getElementById('modalTtl').textContent = id ? 'Edit Video' : 'Add Video';
   const v = id ? videos.find(x => x.id === id) : null;
+  
+  const sel = document.getElementById('fCat');
+  sel.innerHTML = '<option value="">— none —</option>' + cats.map(c => `<option>${c}</option>`).join('');
+  
   document.getElementById('fNum').value   = v?.num   ?? '';
   document.getElementById('fTitle').value = v?.title ?? '';
   document.getElementById('fUrl').value   = v?.url   ?? '';
